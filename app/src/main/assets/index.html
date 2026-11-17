@@ -46,6 +46,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 #tabs a.on{color:var(--acc)}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:#111;padding:9px 18px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 #toast.show{opacity:1}
+
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile i{display:flex;align-items:center;justify-content:center;height:62px;border-radius:12px;font-style:normal;font-size:12px;letter-spacing:1px;border:1px solid #ffffff14}
+.tile b{display:block;font-weight:400;font-size:12px;color:var(--mut);margin-top:5px}
+.ctx{position:relative;height:104px;border-radius:14px;border:1px solid #ffffff14;display:flex;align-items:center;justify-content:center}
+.ctx i{width:46px;height:46px;border-radius:6px}
+.ctx b{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-weight:400;font-size:11px;opacity:.8}
+.prev{border-radius:22px;padding:26px 22px;border:1px solid #ffffff14}
+.pill{display:inline-block;padding:10px 20px;border-radius:24px;font-size:14px}
+.bar{height:10px;border-radius:5px;margin-top:22px}
+.srow{display:flex;gap:6px;flex:1}
+.srow i{flex:1;height:34px;border-radius:8px;border:1px solid #ffffff14}
+.warn{background:#2a2216;border:1px solid #5a4620;color:#f0d9a8;border-radius:12px;padding:11px 14px;margin-bottom:8px;font-size:14px}
 </style>
 </head>
 <body>
@@ -53,6 +66,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 <nav id="tabs">
   <a data-t="explore" onclick="tab('#/')"><b>◎</b>Explore</a>
   <a data-t="mix" onclick="tab('#/color/'+last.slice(1))"><b>◐</b>Mix</a>
+  <a data-t="brand" onclick="tab('#/brand')"><b>◆</b>Brand</a>
   <a data-t="saved" onclick="tab('#/saved')"><b>♥</b>Saved</a>
 </nav>
 <div id="toast"></div>
@@ -126,6 +140,57 @@ for(const k in CMAPS)add(k.toLowerCase(),k,'Scientific colormap · 2015',range(0
 add('gray','Greys','33 steps of neutral',range(0,256,8).map(v=>[toHex([Math.min(v,255),Math.min(v,255),Math.min(v,255)]),String(v)]));
 const TOTAL=COLS.reduce((a,c)=>a+c.items.length,0);
 
+// Light, vision, brand
+const REF=kelvin(6500);
+const gam=v=>Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055));
+const clamp01=v=>Math.max(0,Math.min(1,v));
+const relight=(hex,K)=>{const w=kelvin(K);return toHex(rgb(hex).map((v,i)=>gam(clamp01(lin(v)*lin(w[i])/lin(REF[i])))))};
+const LIGHTS=[['Candle',1900],['Warm LED',2700],['Halogen',3200],['Fluorescent',4100],['Daylight',5500],['Open shade',7500]];
+const VIS=[['Protanopia',[[.152286,1.052583,-.204868],[.114503,.786281,.099216],[-.003882,-.048116,1.051998]]],
+ ['Deuteranopia',[[.367322,.860646,-.227968],[.280085,.672501,.047413],[-.01182,.04294,.968881]]],
+ ['Tritanopia',[[1.255528,-.076749,-.178779],[-.078411,.930809,.147602],[.004733,.691367,.3039]]]];
+const vision=(hex,m)=>{const l=rgb(hex).map(lin);return toHex(m.map(r=>gam(clamp01(r[0]*l[0]+r[1]*l[1]+r[2]*l[2]))))};
+const mono=hex=>{const y=gam(clamp01(lum(rgb(hex))));return toHex([y,y,y])};
+const VSIM=[['Normal',x=>x],...VIS.map(([n,m])=>[n,x=>vision(x,m)]),['Monochrome',mono]];
+const dE=(a,b)=>{const x=lab(rgb(a)),y=lab(rgb(b));return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])};
+const tiles=arr=>'<div class="tiles">'+arr.map(([n,c])=>`<div class="tile"><i style="background:${c};color:${ink(c)}">${c.toUpperCase()}</i><b>${n}</b></div>`).join('')+'</div>';
+const lightSec=hex=>`<div class="sec">Under different light</div>`+tiles(LIGHTS.map(([n,k])=>[n+' · '+k+' K',relight(hex,k)]))+`<div class="small mut" style="margin-top:6px">Approximation, for a screen balanced to daylight.</div>`;
+const visSec=hex=>`<div class="sec">How others may see it</div>`+tiles(VSIM.map(([n,f])=>[n,f(hex)]))+`<div class="small mut" style="margin-top:6px">Simulation of common color-vision differences.</div>`;
+function ctxSec(hex,h,s,l){
+ const bgs=[['White','#ffffff'],['Light grey','#d9d9d9'],['Mid grey','#808080'],['Black','#000000'],['Opposite',hsl(h+180,s,l)],['Neighbor',hsl(h+30,s,Math.min(90,l+15))]];
+ return `<div class="sec">On different backgrounds</div><div class="tiles">`+bgs.map(([n,b])=>`<div class="ctx" style="background:${b}"><i style="background:${hex}"></i><b style="color:${ink(b)}">${n}</b></div>`).join('')+`</div><div class="small mut" style="margin-top:6px">Same color, different neighbors. Watch it seem to change.</div>`}
+function fixContrast(hex,against,target){
+ const [h,s,l]=rgb2hsl(rgb(hex)),dir=lum(rgb(against))>.5?-1:1;let x=l;
+ for(let i=0;i<100;i++){const c=hsl(h,s,Math.max(0,Math.min(100,x)));if(contrast(rgb(c),rgb(against))>=target)return c;x+=dir}
+ return null}
+const SLOTS=[['p','Primary'],['s','Secondary'],['a','Accent']];
+const bstore={get(){try{return JSON.parse(localStorage.getItem('spectra.brand')||'{}')}catch(e){return{}}},
+ set(v){try{localStorage.setItem('spectra.brand',JSON.stringify(v))}catch(e){}}};
+function setBrand(k,hex){const b=bstore.get();b[k]=hex;bstore.set(b);toast('Set as '+SLOTS.find(x=>x[0]==k)[1])}
+function clearBrand(k){const b=bstore.get();delete b[k];bstore.set(b);brand()}
+const grade=r=>r>=7?'AAA':r>=4.5?'AA':r>=3?'Large text only':'Fail';
+function brand(){
+ const b=bstore.get(),set=SLOTS.filter(([k])=>b[k]),cols=set.map(([k])=>b[k]);
+ let out=`<h2 class="serif">Brand</h2><div class="mut">Pick up to three colors. On any color page, tap “Use in brand”.</div><div class="sec">Your colors</div>`;
+ out+=SLOTS.map(([k,n])=>b[k]?`<div class="daily" style="padding:10px;margin-bottom:10px"><i style="background:${b[k]}" onclick="go('#/color/${b[k].slice(1)}')"></i><div style="flex:1"><div class="small mut">${n.toUpperCase()}</div><div class="serif" style="font-size:20px">${nameOf(b[k])}</div><div class="small mut">${b[k].toUpperCase()}</div></div><button class="back" onclick="clearBrand('${k}')">Remove</button></div>`:`<div class="daily" style="padding:10px;margin-bottom:10px;opacity:.6"><i style="background:transparent;border:1px dashed #555"></i><div><div class="small mut">${n.toUpperCase()}</div><div class="mut">Not set</div></div></div>`).join('');
+ if(!set.length){app.innerHTML=out+`<button class="btn" onclick="tab('#/')">Browse colors</button>`;return}
+ const main=cols[0],pill=cols.length>1?cols[cols.length-1]:null,bar=cols.length>2?cols[1]:null;
+ out+=`<div class="sec">Preview</div><div class="prev" style="background:${main};color:${ink(main)}"><div class="serif" style="font-size:28px">Your brand</div><p style="margin:8px 0 16px">A line of body text to see how it reads.</p>${pill?`<span class="pill" style="background:${pill};color:${ink(pill)}">Call to action</span>`:''}${bar?`<div class="bar" style="background:${bar}"></div>`:''}</div>`;
+ out+='<div class="sec">Text on each color</div>'+set.map(([k,n])=>{const c=b[k],w=contrast(rgb(c),[255,255,255]),bl=contrast(rgb(c),[0,0,0]),r=Math.max(w,bl);
+  return `<div class="row"><span>${n}</span><b style="font-weight:500">${w>=bl?'White':'Black'} text · ${r.toFixed(1)}:1 ${grade(r)}</b></div>`}).join('');
+ const pairs=[];for(let i=0;i<set.length;i++)for(let j=i+1;j<set.length;j++)pairs.push([set[i],set[j]]);
+ if(pairs.length)out+='<div class="sec">Between your colors</div>'+pairs.map(([[k1,n1],[k2,n2]])=>{
+  const r=contrast(rgb(b[k1]),rgb(b[k2]));let fix='';
+  if(r<3){const f=fixContrast(b[k2],b[k1],3);if(f)fix=`<div class="small mut" style="padding:0 4px 10px">To separate them, try <a onclick="go('#/color/${f.slice(1)}')" style="color:var(--acc)">${f.toUpperCase()}</a> for ${n2}.</div>`}
+  return `<div class="row"><span>${n1} / ${n2}</span><b style="font-weight:500">${r.toFixed(1)}:1 ${r>=3?'Distinct':'Too close'}</b></div>`+fix}).join('');
+ const rows=(title,sims)=>`<div class="sec">${title}</div>`+sims.map(([n,f])=>`<div class="row" style="align-items:center;gap:10px"><span style="min-width:104px">${n}</span><div class="srow">${cols.map(c=>`<i style="background:${f(c)}"></i>`).join('')}</div></div>`).join('');
+ out+=rows('Under different light',LIGHTS.filter(x=>[1900,2700,4100,5500].includes(x[1])).map(([n,k])=>[n,x=>relight(x,k)]));
+ out+=rows('Color vision',VSIM);
+ const warn=[];
+ for(const [vn,f] of VSIM.slice(1))for(const [[k1,n1],[k2,n2]] of pairs)if(dE(f(b[k1]),f(b[k2]))<15&&dE(b[k1],b[k2])>=15)warn.push(`${n1} and ${n2} look alike with ${vn}.`);
+ if(warn.length)out+='<div class="sec">Heads up</div>'+warn.map(w=>`<div class="warn">${w}</div>`).join('');
+ app.innerHTML=out}
+
 // State, helpers
 let last='#e8c37a';
 const store={get(){try{return JSON.parse(localStorage.getItem('spectra.saved')||'[]')}catch(e){return[]}},
@@ -194,18 +259,18 @@ function info(hex){
  row('HSV',`${R(v[0])}°, ${R(v[1])}%, ${R(v[2])}%`)+row('CMYK',k.map(R).join(', '))+row('LAB',L.map(R).join(', '))+
  `<div class="sec">Readability</div><div class="row"><span>White text</span><b style="font-weight:500">${w.toFixed(1)}:1 ${w>=7?'AAA':w>=4.5?'AA':w>=3?'Large only':'Fail'}</b></div>
  <div class="row"><span>Black text</span><b style="font-weight:500">${b.toFixed(1)}:1 ${b>=7?'AAA':b>=4.5?'AA':b>=3?'Large only':'Fail'}</b></div>`+
- hr('Complement',[[h,s,l],[h+180,s,l]])+hr('Analogous',[[h-30,s,l],[h,s,l],[h+30,s,l]])+
+ lightSec(hex)+ctxSec(hex,h,s,l)+visSec(hex)+hr('Complement',[[h,s,l],[h+180,s,l]])+hr('Analogous',[[h-30,s,l],[h,s,l],[h+30,s,l]])+
  hr('Triad',[[h,s,l],[h+120,s,l],[h+240,s,l]])+hr('Tetrad',[[h,s,l],[h+90,s,l],[h+180,s,l],[h+270,s,l]])+
  hr('Split complement',[[h,s,l],[h+150,s,l],[h+210,s,l]])+
  hr('Shades',[92,78,64,50,36,22,10].map(x=>[h,s,x]))+
- `<button class="btn ${fav?'on':''}" onclick="toggleFav('${hex}')">${fav?'♥ Saved':'♡ Save this color'}</button>`}
+ `<button class="btn ${fav?'on':''}" onclick="toggleFav('${hex}')">${fav?'♥ Saved':'♡ Save this color'}</button><div class="sec">Use in brand</div><div class="hrow">${SLOTS.map(([k,n])=>`<button class="btn" style="margin-top:0" onclick="setBrand('${k}','${hex}')">${n}</button>`).join('')}</div>`}
 function toggleFav(hex){let s=store.get();s=s.includes(hex)?s.filter(x=>x!=hex):[hex,...s];store.set(s);document.getElementById('inf').innerHTML=info(hex)}
 
 // Router
 function route(){
  const [a,b]=location.hash.slice(2).split('/');window.scrollTo(0,0);
- if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else home();
- const t=a=='color'?'mix':a=='saved'?'saved':'explore';
+ if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else if(a=='brand')brand();else home();
+ const t=a=='color'?'mix':a=='saved'?'saved':a=='brand'?'brand':'explore';
  document.querySelectorAll('#tabs a').forEach(x=>x.classList.toggle('on',x.dataset.t==t))}
 window.addEventListener('hashchange',route);route();
 </script>
