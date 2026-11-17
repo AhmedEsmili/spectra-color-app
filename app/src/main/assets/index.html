@@ -66,6 +66,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .fr>i{width:56px;height:56px;border-radius:50%;flex:none;border:1px solid #ffffff22}
 .fr .tt{font-family:Georgia,serif;font-size:18px}
 .fr .ln{font-size:13px;color:var(--mut);font-style:italic;margin-top:3px}
+
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 18px}
+.feat{border-radius:18px;padding:16px;border:1px solid var(--line);color:#111}
+.feat b{display:block;font-family:Georgia,serif;font-weight:400;font-size:19px}
+.feat span{font-size:13px;opacity:.75}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.chip{padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);font-size:14px}
+.fcard{border-radius:20px;border:1px solid var(--line);background:var(--card);overflow:hidden;margin:16px 0}
+.fcard .sw2{height:110px}
+.fcard .in{padding:14px 16px 16px}
+.sym p{margin:0 0 10px;font-size:15px}
+.sym b{display:block;font-weight:400;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut)}
+.sym .ask{font-family:Georgia,serif;font-style:italic;color:var(--acc);font-size:17px}
 </style>
 </head>
 <body>
@@ -245,6 +258,158 @@ function friendsSec(hex){
  `<button class="btn" onclick="ensemble('${hex}')">Use this ensemble in brand</button>`}
 function ensemble(hex){const f=friends(hex);setBrand('p',hex);setBrand('s',f.find(x=>x[0]=='muse')[2]);setBrand('a',f.find(x=>x[0]=='gold')[2]);toast('Ensemble set in Brand')}
 
+// Symbolic traditions: alchemy, chakra systems, Goethe and Kandinsky (paraphrased, for reflection)
+const SYM={
+ red:{n:'Red',kw:'vitality',th:'Vitality, will, courage, the body awake.',sh:'Rage, urgency, burning out.',
+  st:'Rubedo, the reddening: lived, embodied wholeness. In Jungian readings it is the partner of white in a union called the coniunctio (Ehlers, 2024).',
+  ch:'Root chakra: survival, the body, belonging to the earth.',go:'Goethe saw pure red as the crown of his color circle, where warm and cool sides meet.',ask:'What am I willing to fight for, and what needs protecting?'},
+ orange:{n:'Orange',kw:'warmth',th:'Warmth, appetite, play, social joy.',sh:'Restlessness, overindulgence.',
+  st:'Between the yellowing and the reddening: insight starting to take on flesh.',
+  ch:'Sacral chakra: pleasure, creativity, relationship.',go:'Goethe placed yellow-red on the exciting, warm side of his circle.',ask:'What would I make if nobody were judging it?'},
+ yellow:{n:'Yellow',kw:'clarity',th:'Clarity, intellect, hope, the courage to see.',sh:'Anxiety, harsh criticism, glare.',
+  st:'Citrinitas, the yellowing: dawn after the dark, the first real seeing.',
+  ch:'Solar plexus chakra: will, confidence, personal power.',go:'Goethe called yellow the color nearest to light: cheerful, and glaring when too strong.',ask:'What can I see clearly now that I could not before?'},
+ green:{n:'Green',kw:'renewal',th:'Renewal, balance, healing, slow growth.',sh:'Envy, stagnation.',
+  st:'Hildegard of Bingen named green’s living, healing force viriditas.',
+  ch:'Heart chakra: love, balance, connection.',go:'Goethe found green restful, a blend of yellow and blue where the eye is content to stay.',ask:'What in me is ready to grow slowly?'},
+ teal:{n:'Teal',kw:'calm honesty',th:'Calm honesty, clear speech, emotional clarity.',sh:'Coolness, withholding.',
+  st:'A threshold shade, where growth begins to find its voice.',
+  ch:'Between heart and throat chakras: speaking from the heart.',go:'The cool side’s calm, softened by green’s rest.',ask:'What truth can I say gently?'},
+ blue:{n:'Blue',kw:'depth',th:'Depth, longing, calm, trust.',sh:'Melancholy, distance.',
+  st:'Not a classic alchemical stage; in the imagery it is the cool depth of water and sky.',
+  ch:'Throat chakra: truth and expression.',go:'Goethe put blue on the cool side, where it seems to retreat. Kandinsky felt it pulling toward the infinite.',ask:'What am I longing toward?'},
+ violet:{n:'Violet',kw:'mystery',th:'Imagination, mystery, intuition, spiritual longing.',sh:'Confusion, escapism.',
+  st:'Beyond the four classic stages: boundaries dissolving, the numinous.',
+  ch:'Third-eye and crown chakras: intuition and meaning.',go:'Goethe linked red-blue to restless yearning.',ask:'What is asking to be sensed rather than solved?'},
+ magenta:{n:'Magenta',kw:'compassion',th:'Compassion, devotion, wholeness.',sh:'Overwhelm, excess.',
+  st:'Opposites held together: red and blue in one.',
+  ch:'Heart toward crown: love that includes the spiritual.',go:'Newton’s spectrum has no magenta. The eye invents it by joining red and violet.',ask:'Where could I be kinder to myself?'},
+ rose:{n:'Rose',kw:'tenderness',th:'Tenderness, care, vulnerability.',sh:'Sentimentality, dependence.',
+  st:'A softened rubedo: the red of life, gentled.',
+  ch:'Heart chakra, in its tender form.',go:'A paler warm: emotional warmth without heat.',ask:'What is asking to be treated gently?'},
+ brown:{n:'Brown',kw:'grounding',th:'Home, humility, belonging, stability.',sh:'Heaviness, feeling stuck.',
+  st:'The earth of the work: prima materia, the raw material alchemy begins with.',
+  ch:'Root chakra, in grounded form.',go:'A darkened warm: orange’s warmth with shadow added.',ask:'What gives me ground?'},
+ black:{n:'Black',kw:'descent',th:'Endings, depth, fertile darkness, mystery.',sh:'Despair, avoidance.',
+  st:'Nigredo, the blackening: dissolution and descent, where the work begins.',
+  ch:'The unlit void before the chakras: pure potential.',go:'Kandinsky heard black as a total, soundless pause.',ask:'What is ready to end so something can begin?'},
+ white:{n:'White',kw:'beginnings',th:'Beginnings, purity, clarity, open space.',sh:'Sterility, emptiness.',
+  st:'Albedo, the whitening: washing clean, clarity, the blank page.',
+  ch:'Crown chakra, as all colors held together.',go:'Newton showed that white light contains every color.',ask:'What do I want to begin again?'},
+ grey:{n:'Grey',kw:'balance',th:'Balance, patience, neutrality.',sh:'Numbness, indecision.',
+  st:'The in-between hour, between blackening and whitening.',
+  ch:'No chakra of its own; often read as neutrality.',go:'A color at rest, neither pulling nor pushing.',ask:'What can wait?'}};
+function symbolOf(hex){
+ const [L,C,h]=hex2ok(hex);
+ if(C<.03)return L<.3?'black':L>.9?'white':'grey';
+ if(h>=40&&h<80&&L<.55&&C<.13)return 'brown';
+ if(h>=345||h<15)return 'rose';
+ if(h<45)return 'red';
+ if(h<80)return 'orange';
+ if(h<112)return 'yellow';
+ if(h<170)return 'green';
+ if(h<215)return 'teal';
+ if(h<270)return 'blue';
+ if(h<325)return 'violet';
+ return 'magenta'}
+function symSec(hex){
+ const y=SYM[symbolOf(hex)];
+ return `<div class="sec">Symbolic reading · ${y.n}</div><div class="sym"><p><b>Theme</b>${y.th}</p><p><b>Shadow</b>${y.sh}</p><p><b>Alchemy</b>${y.st}</p><p><b>Chakra tradition</b>${y.ch}</p><p><b>Goethe and Kandinsky</b>${y.go}</p><p class="ask">${y.ask}</p><div class="small mut">Symbolic traditions for reflection, not science or diagnosis.</div></div>`}
+
+// Feelings to colors
+const FEEL=[
+ {n:'Calm',w:['peace','serene','still','quiet','tranquil'],c:[.72,.07,225],l:'Water that has stopped trying.'},
+ {n:'Longing',w:['yearning','missing','miss','desire'],c:[.5,.12,275],l:'Blue at the far edge of the hill.'},
+ {n:'Nostalgia',w:['memory','memories','homesick','past'],c:[.78,.08,70],l:'Sunlight remembered through a window.'},
+ {n:'Ambition',w:['drive','determination','goal','striving'],c:[.58,.2,38],l:'A flame carrying a map.'},
+ {n:'Grief',w:['sorrow','loss','sad','sadness','mourning','heartbreak'],c:[.35,.05,260],l:'The ink of the longest night.'},
+ {n:'Joy',w:['happy','happiness','delight','cheer','laughter'],c:[.88,.17,95],l:'Laughter caught in a lemon.'},
+ {n:'Courage',w:['brave','bravery','bold','strength'],c:[.55,.2,29],l:'A heart that answered anyway.'},
+ {n:'Mystery',w:['secret','unknown','enigma','curious'],c:[.32,.12,305],l:'A door left slightly open.'},
+ {n:'Renewal',w:['rebirth','spring','fresh','healing','begin'],c:[.78,.15,140],l:'The first green after winter.'},
+ {n:'Clarity',w:['clear','focus','truth','honest'],c:[.88,.06,225],l:'A window wiped clean.'},
+ {n:'Rest',w:['sleep','tired','exhausted','relax','pause'],c:[.62,.05,255],l:'Permission to put everything down.'},
+ {n:'Passion',w:['love','lust','fire','devotion'],c:[.5,.22,20],l:'A pulse with a name.'},
+ {n:'Protection',w:['safe','safety','shelter','home','secure'],c:[.4,.08,150],l:'Roots, and a roof.'},
+ {n:'Wisdom',w:['wise','insight','knowing','intuition'],c:[.4,.14,290],l:'What the quiet already knew.'},
+ {n:'Transformation',w:['change','transition','metamorphosis','becoming'],c:[.55,.18,330],l:'The cocoon is also a sky.'},
+ {n:'Solitude',w:['alone','lonely','loneliness','solitary'],c:[.58,.04,245],l:'A lamp in a far window.'},
+ {n:'Abundance',w:['wealth','prosperity','gratitude','plenty','harvest'],c:[.8,.14,85],l:'Harvest light.'},
+ {n:'Tenderness',w:['tender','gentle','kind','compassion','affection','soft'],c:[.82,.09,0],l:'A hand that does not grip.'},
+ {n:'Doubt',w:['uncertain','confusion','confused','anxious','anxiety','worry'],c:[.6,.03,100],l:'Fog with a faint bell inside.'},
+ {n:'Awe',w:['wonder','sublime','amazement','amazed'],c:[.45,.15,275],l:'Stars rearranging your size.'},
+ {n:'Hope',w:['optimism','dawn','faith','hopeful'],c:[.85,.1,75],l:'The smallest light still counts.'},
+ {n:'Anger',w:['rage','fury','frustration','angry'],c:[.45,.19,25],l:'Heat with nowhere to go.'},
+ {n:'Creativity',w:['creative','imagination','inspiration','play'],c:[.72,.16,55],l:'A spark learning to dance.'},
+ {n:'Freedom',w:['free','open','adventure','sky'],c:[.72,.12,235],l:'Wind in the shape of a color.'},
+ {n:'Belonging',w:['family','community','warmth','hearth','together'],c:[.55,.1,50],l:'A table with one more chair.'},
+ {n:'Harmony',w:['balance','wholeness','union','integration','peaceful'],c:[.65,.1,170],l:'Two halves, finally breathing together.'}];
+const feelHex=f=>ok2hex(f.c[0],f.c[1],f.c[2]);
+function feel(){
+ app.innerHTML=`${back()}<h2 class="serif">Feel a color</h2><div class="mut">Name a feeling. Get its color, a line of poetry, and what old symbolic traditions say about it.</div>
+ <input id="fq" class="search" placeholder="e.g. longing, calm, ambition" oninput="feelSearch(this.value)" autocomplete="off">
+ <div class="chips">${FEEL.map(f=>`<span class="chip" onclick="pickFeel('${f.n}')">${f.n}</span>`).join('')}</div>
+ <div id="fres"></div>
+ <div class="small mut" style="margin-top:26px;line-height:1.5">Draws on Jungian alchemical color stages (see Ehlers, 2024, Journal of Sandplay Therapy), Goethe’s Theory of Colours, Kandinsky and chakra traditions. A 30-nation study found color-emotion links are broadly shared, with local differences (Jonauskaite et al., 2020). These are symbols for reflection, not science or diagnosis.</div>`}
+function pickFeel(n){document.getElementById('fq').value=n;feelSearch(n)}
+function feelSearch(v){
+ const words=v.toLowerCase().split(/[^a-z]+/).filter(x=>x.length>=3),res=document.getElementById('fres');
+ if(!words.length){res.innerHTML='';return}
+ const hit=FEEL.filter(f=>{const keys=[f.n.toLowerCase(),...f.w];return words.some(w=>keys.some(k=>k.startsWith(w)||w.startsWith(k)))}).slice(0,3);
+ res.innerHTML=hit.length?hit.map(feelCard).join(''):'<p class="mut">That feeling is new to me. Try one of the words above.</p>'}
+function feelCard(f){
+ const hex=feelHex(f),y=SYM[symbolOf(hex)],fr=friends(hex);
+ return `<div class="fcard"><div class="sw2" style="background:${hex}"></div><div class="in"><div class="serif" style="font-size:24px">${f.n}</div><div class="ln" style="font-style:italic;color:var(--mut);margin:2px 0 10px">${f.l}</div>
+ <div class="small mut">${strip(nameOf(hex))} · ${hex.toUpperCase()} · ${y.n}</div>
+ <p style="margin:12px 0 4px"><span class="small mut">ALCHEMY</span><br>${y.st}</p><p style="margin:8px 0 4px"><span class="small mut">CHAKRA TRADITION</span><br>${y.ch}</p>
+ <p class="serif" style="font-style:italic;color:var(--acc);font-size:17px;margin:10px 0">${y.ask}</p>
+ <div class="pal" style="height:44px">${[hex,...fr.map(x=>x[2])].map(c=>`<i style="background:${c}"></i>`).join('')}</div>
+ <button class="btn" style="margin-top:6px" onclick="go('#/color/${hex.slice(1)}')">Open this color and its friends</button></div></div>`}
+
+// Photo picking
+let PH=null;
+function photo(){
+ app.innerHTML=`${back()}<h2 class="serif">From a photo</h2><div class="mut">Choose a photo. Tap it to pick a color, and read the mood of its palette.</div>
+ <input type="file" id="pfile" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+ <button class="btn" onclick="document.getElementById('pfile').click()">Choose a photo</button><div id="pout"></div>`}
+function loadPhoto(inp){
+ const f=inp.files&&inp.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{const img=new Image();
+  img.onload=()=>{const sc=Math.min(1,900/Math.max(img.width,img.height)),cv=document.createElement('canvas');
+   cv.width=Math.max(1,Math.round(img.width*sc));cv.height=Math.max(1,Math.round(img.height*sc));
+   const cx=cv.getContext('2d');cx.drawImage(img,0,0,cv.width,cv.height);
+   PH={w:cv.width,h:cv.height,id:cx.getImageData(0,0,cv.width,cv.height)};showPhoto()};
+  img.src=rd.result};
+ rd.readAsDataURL(f)}
+function palette(d,n){
+ const bins=new Map();
+ for(let i=0;i<d.length;i+=16){if(d[i+3]<128)continue;
+  const k=((d[i]>>4)<<8)|((d[i+1]>>4)<<4)|(d[i+2]>>4),o=bins.get(k)||[0,0,0,0];
+  o[0]+=d[i];o[1]+=d[i+1];o[2]+=d[i+2];o[3]++;bins.set(k,o)}
+ const arr=[...bins.values()].sort((p,q)=>q[3]-p[3]).map(o=>toHex([o[0],o[1],o[2]].map(v=>Math.round(v/o[3]))));
+ const out=[];
+ for(const h of arr){if(out.every(x=>dE(x,h)>=16))out.push(h);if(out.length>=n)break}
+ return out}
+function showPhoto(){
+ const pal=palette(PH.id.data,6),kws=[];
+ pal.slice(0,3).forEach(h=>{const k=SYM[symbolOf(h)].kw;if(!kws.includes(k))kws.push(k)});
+ const mood=kws.length<2?`A mood of ${kws[0]||'quiet'}.`:kws.length==2?`A mood of ${kws[0]}, with ${kws[1]} beneath.`:`A mood of ${kws[0]}, with ${kws[1]} and a touch of ${kws[2]}.`;
+ document.getElementById('pout').innerHTML=`<canvas id="pcv" style="width:100%;border-radius:18px;margin-top:16px;touch-action:manipulation" onclick="samplePhoto(event)"></canvas>
+ <div class="small mut" style="margin-top:6px">Tap the photo to pick a color.</div><div id="psel"></div>
+ <div class="sec">Palette of this photo</div><div class="serif" style="font-size:20px;margin-bottom:6px">${mood}</div>${grid(pal.map(h=>({h,n:h.toUpperCase()})))}`;
+ const c=document.getElementById('pcv');c.width=PH.w;c.height=PH.h;c.getContext('2d').putImageData(PH.id,0,0)}
+function samplePhoto(e){
+ const c=document.getElementById('pcv'),r=c.getBoundingClientRect();
+ const x=Math.round((e.clientX-r.left)*c.width/r.width),y=Math.round((e.clientY-r.top)*c.height/r.height);
+ const x0=clampN(x-3,0,Math.max(0,c.width-7)),y0=clampN(y-3,0,Math.max(0,c.height-7)),cx=c.getContext('2d'),d=cx.getImageData(x0,y0,Math.min(7,c.width),Math.min(7,c.height)).data;
+ let R=0,G=0,B=0,n=0;for(let i=0;i<d.length;i+=4){R+=d[i];G+=d[i+1];B+=d[i+2];n++}
+ const hex=toHex([R,G,B].map(v=>Math.round(v/n)));
+ cx.putImageData(PH.id,0,0);cx.lineWidth=Math.max(3,c.width/160);cx.strokeStyle='#fff';cx.beginPath();cx.arc(x,y,c.width/45,0,7);cx.stroke();
+ cx.strokeStyle='#000';cx.beginPath();cx.arc(x,y,c.width/45+cx.lineWidth,0,7);cx.stroke();
+ const fr=friends(hex);
+ document.getElementById('psel').innerHTML=`<div class="fr" style="margin-top:12px" onclick="go('#/color/${hex.slice(1)}')"><i style="background:${hex}"></i><div><div class="tt">${strip(nameOf(hex))}</div><div class="small mut">${hex.toUpperCase()} · ${SYM[symbolOf(hex)].n}</div><div class="ln">Tap to open its friends and symbolic reading.</div></div></div><div class="pal" style="height:44px">${[hex,...fr.map(q=>q[2])].map(q=>`<i style="background:${q}"></i>`).join('')}</div>`}
+
 // State, helpers
 let last='#e8c37a';
 const store={get(){try{return JSON.parse(localStorage.getItem('spectra.saved')||'[]')}catch(e){return[]}},
@@ -263,6 +428,7 @@ function home(){
  <input id="q" class="search" placeholder="Search a name, hex or wavelength" oninput="search(this.value)" autocomplete="off">
  <div id="res"></div>
  <div id="cols">
+ <div class="duo"><div class="feat" style="background:linear-gradient(135deg,#e8c37a,#d98a6c)" onclick="go('#/feel')"><b>Feel a color</b><span>Start from a feeling</span></div><div class="feat" style="background:linear-gradient(135deg,#8fb8c9,#9a8fc9)" onclick="go('#/photo')"><b>From a photo</b><span>Pick and read colors</span></div></div>
  <div class="daily" onclick="go('#/color/${d.h.slice(1)}')"><i style="background:${d.h}"></i><div><div class="small mut">COLOR OF THE DAY</div><div class="serif" style="font-size:22px">${d.n}</div><div class="small mut">${d.h.toUpperCase()}</div></div></div>
  ${COLS.map(c=>{const n=Math.min(14,c.items.length),cs=range(0,n-1,1).map(i=>c.items[Math.round(i*(c.items.length-1)/(n-1))].h);
   return `<div class="card" onclick="go('#/c/${c.id}')"><div class="strip" style="background:linear-gradient(90deg,${cs.join(',')})"></div><div class="body"><div class="t">${c.name}</div><div class="small mut">${c.note} · ${c.items.length}</div></div></div>`}).join('')}
@@ -308,7 +474,7 @@ function info(hex){
  const hr=(t,arr)=>`<div class="sec">${t}</div><div class="hrow">${arr.map(x=>{const q=hsl(x[0],x[1],x[2]);return `<div onclick="go('#/color/${q.slice(1)}')"><i style="background:${q}"></i><b>${q.toUpperCase()}</b></div>`}).join('')}</div>`;
  const w=contrast(c,[255,255,255]),b=contrast(c,[0,0,0]);
  const fav=store.get().includes(hex);
- return friendsSec(hex)+`<div class="sec">Values · tap to copy</div>`+
+ return friendsSec(hex)+symSec(hex)+`<div class="sec">Values · tap to copy</div>`+
  row('HEX',hex.toUpperCase())+row('RGB',`${c[0]}, ${c[1]}, ${c[2]}`)+row('HSL',`${R(h)}°, ${R(s)}%, ${R(l)}%`)+
  row('HSV',`${R(v[0])}°, ${R(v[1])}%, ${R(v[2])}%`)+row('CMYK',k.map(R).join(', '))+row('LAB',L.map(R).join(', '))+
  `<div class="sec">Readability</div><div class="row"><span>White text</span><b style="font-weight:500">${w.toFixed(1)}:1 ${w>=7?'AAA':w>=4.5?'AA':w>=3?'Large only':'Fail'}</b></div>
@@ -323,7 +489,7 @@ function toggleFav(hex){let s=store.get();s=s.includes(hex)?s.filter(x=>x!=hex):
 // Router
 function route(){
  const [a,b]=location.hash.slice(2).split('/');window.scrollTo(0,0);
- if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else if(a=='brand')brand();else home();
+ if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else if(a=='brand')brand();else if(a=='feel')feel();else if(a=='photo')photo();else home();
  const t=a=='color'?'mix':a=='saved'?'saved':a=='brand'?'brand':'explore';
  document.querySelectorAll('#tabs a').forEach(x=>x.classList.toggle('on',x.dataset.t==t))}
 window.addEventListener('hashchange',route);route();
