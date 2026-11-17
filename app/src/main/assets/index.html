@@ -59,6 +59,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .srow{display:flex;gap:6px;flex:1}
 .srow i{flex:1;height:34px;border-radius:8px;border:1px solid #ffffff14}
 .warn{background:#2a2216;border:1px solid #5a4620;color:#f0d9a8;border-radius:12px;padding:11px 14px;margin-bottom:8px;font-size:14px}
+
+.pal{display:flex;height:64px;border-radius:16px;overflow:hidden;margin:10px 0 14px;border:1px solid #ffffff14}
+.pal i{flex:1}
+.fr{display:flex;gap:14px;align-items:center;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);margin-bottom:10px}
+.fr>i{width:56px;height:56px;border-radius:50%;flex:none;border:1px solid #ffffff22}
+.fr .tt{font-family:Georgia,serif;font-size:18px}
+.fr .ln{font-size:13px;color:var(--mut);font-style:italic;margin-top:3px}
 </style>
 </head>
 <body>
@@ -191,6 +198,38 @@ function brand(){
  if(warn.length)out+='<div class="sec">Heads up</div>'+warn.map(w=>`<div class="warn">${w}</div>`).join('');
  app.innerHTML=out}
 
+// Color friends: poetic companions, softened when the color is harsh
+const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+const strip=n=>n.replace('≈ ','');
+const hashOf=h=>[...h].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7)>>>0;
+const LINES={
+ gentle:['{a}, with the fire turned to embers.','The same heart as {a}, speaking softly.','{a} after the storm has passed.'],
+ muse:['{a} dreams of {b}, the other half of its night.','Where {a} burns, {b} answers like a cool evening.','{b} is the stillness {a} has always searched for.'],
+ whisper:['{b} walks beside {a} like a hushed echo.','A breath of {b}, so {a} can rest.','{a}’s quietest neighbor, {b}, at the edge of the afternoon.'],
+ shadow:['{b}, the shade {a} casts at dusk.','What {a} becomes when the lamps go out: {b}.','{a} at midnight is {b}.'],
+ light:['{b}, the light {a} longs for.','Morning on {a}’s shoulders: {b}.','{a} lifted into {b}, like mist at dawn.'],
+ ground:['{b}, a quiet page for {a} to speak on.','Linen and silence: {b} lets {a} breathe.','The still room around {a}: {b}.'],
+ gold:['A single thread of {b} through {a}, like a hidden jewel.','{b}: the secret {a} keeps for royalty.','Add {b}, and {a} becomes a crown.']};
+function friends(hex){
+ const [h,s,l]=rgb2hsl(rgb(hex)),harsh=s>78&&l>22&&l<78,tm=harsh?.5:.78,out=[];
+ if(harsh)out.push(['gentle','Its gentler self',hsl(h,clampN(s*.55,30,62),clampN(l,34,66))]);
+ out.push(['muse','The Muse',hsl(h+180,clampN(s*tm,28,66),l<50?clampN(l+34,60,88):clampN(l-34,16,40))]);
+ out.push(['whisper','The Whisper',hsl(h-28,clampN(s*.45,18,45),clampN(l+(l<60?20:-22),22,88))]);
+ out.push(['shadow','The Shadow',hsl(h+14,clampN(s*.5,25,55),clampN(l*.35,10,24))]);
+ out.push(['light','The Light',hsl(h-8,clampN(s*.7,30,75),91)]);
+ out.push(['ground','The Quiet Ground',hsl(h,14,94)]);
+ out.push(['gold','The Golden Thread',h>=200&&h<=300?hsl(42,70,58):hsl(190,45,32)]);
+ return out}
+function friendsSec(hex){
+ const base=strip(nameOf(hex)),hs=hashOf(hex),f=friends(hex),harsh=f[0][0]=='gentle';
+ const fill=(t,a,b)=>t.split('{a}').join(a).split('{b}').join(b);
+ return `<div class="sec">Color friends</div><div class="serif" style="font-size:20px">${harsh?'A bold one. Here is who calms it.':'The most beautiful company for it.'}</div>`+
+ `<div class="pal">${[hex,...f.map(x=>x[2])].map(c=>`<i style="background:${c}"></i>`).join('')}</div>`+
+ f.map(([k,t,c],i)=>{const nm=strip(nameOf(c)),arr=LINES[k];
+  return `<div class="fr" onclick="go('#/color/${c.slice(1)}')"><i style="background:${c}"></i><div><div class="tt">${t}</div><div class="small mut">${nm} · ${c.toUpperCase()}</div><div class="ln">${fill(arr[(hs+i)%arr.length],base,nm)}</div></div></div>`}).join('')+
+ `<button class="btn" onclick="ensemble('${hex}')">Use this ensemble in brand</button>`}
+function ensemble(hex){const f=friends(hex);setBrand('p',hex);setBrand('s',f.find(x=>x[0]=='muse')[2]);setBrand('a',f.find(x=>x[0]=='gold')[2]);toast('Ensemble set in Brand')}
+
 // State, helpers
 let last='#e8c37a';
 const store={get(){try{return JSON.parse(localStorage.getItem('spectra.saved')||'[]')}catch(e){return[]}},
@@ -254,7 +293,7 @@ function info(hex){
  const hr=(t,arr)=>`<div class="sec">${t}</div><div class="hrow">${arr.map(x=>{const q=hsl(x[0],x[1],x[2]);return `<div onclick="go('#/color/${q.slice(1)}')"><i style="background:${q}"></i><b>${q.toUpperCase()}</b></div>`}).join('')}</div>`;
  const w=contrast(c,[255,255,255]),b=contrast(c,[0,0,0]);
  const fav=store.get().includes(hex);
- return `<div class="sec">Values · tap to copy</div>`+
+ return friendsSec(hex)+`<div class="sec">Values · tap to copy</div>`+
  row('HEX',hex.toUpperCase())+row('RGB',`${c[0]}, ${c[1]}, ${c[2]}`)+row('HSL',`${R(h)}°, ${R(s)}%, ${R(l)}%`)+
  row('HSV',`${R(v[0])}°, ${R(v[1])}%, ${R(v[2])}%`)+row('CMYK',k.map(R).join(', '))+row('LAB',L.map(R).join(', '))+
  `<div class="sec">Readability</div><div class="row"><span>White text</span><b style="font-weight:500">${w.toFixed(1)}:1 ${w>=7?'AAA':w>=4.5?'AA':w>=3?'Large only':'Fail'}</b></div>
