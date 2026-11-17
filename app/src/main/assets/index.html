@@ -101,6 +101,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;heigh
 .wring{width:200px;height:200px;border-radius:50%;border:1px solid #ffffffa0;background:radial-gradient(circle,#ffffff38,#ffffff00 70%);box-shadow:0 0 60px #ffffff40}
 #wbt{font-size:24px}
 #wq{font-family:Georgia,serif;font-style:italic;font-size:17px;opacity:.85;max-width:290px;min-height:48px}
+
+.chips2{display:flex;gap:10px;overflow-x:auto;padding:6px 4px 12px}
+.chips2 i{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #ffffff22}
+.chips2 i.on{border-color:#fff;box-shadow:0 0 0 2px #0e0e11,0 0 0 4px var(--acc)}
 </style>
 </head>
 <body>
@@ -231,6 +235,7 @@ function brand(){
  const warn=[];
  for(const [vn,f] of VSIM.slice(1))for(const [[k1,n1],[k2,n2]] of pairs)if(dE(f(b[k1]),f(b[k2]))<15&&dE(b[k1],b[k2])>=15)warn.push(`${n1} and ${n2} look alike with ${vn}.`);
  if(warn.length)out+='<div class="sec">Heads up</div>'+warn.map(w=>`<div class="warn">${w}</div>`).join('');
+ out+=`<button class="btn" onclick="go('#/tryon/${cols[0].slice(1)}')">Try on a real object</button>`;
  app.innerHTML=out}
 
 // Color friends: poetic companions, softened when the color is harsh
@@ -451,6 +456,7 @@ function home(){
  <div id="res"></div>
  <div id="cols">
  <div class="feat" style="background:linear-gradient(135deg,#2b1f4a,#0e6b7a 55%,#e8c37a);color:#fff;margin-bottom:12px" onclick="go('#/world/${d.h.slice(1)}')"><b>Enter a color</b><span>Step inside a living world · today: ${d.n}</span></div>
+ <div class="feat" style="background:linear-gradient(135deg,#d9c7a3,#7aa6a1);margin-bottom:12px" onclick="go('#/tryon')"><b>Try on a real object</b><span>Photo or camera: see a color on your wall, box or product</span></div>
  <div class="duo"><div class="feat" style="background:linear-gradient(135deg,#e8c37a,#d98a6c)" onclick="go('#/feel')"><b>Feel a color</b><span>Start from a feeling</span></div><div class="feat" style="background:linear-gradient(135deg,#8fb8c9,#9a8fc9)" onclick="go('#/photo')"><b>From a photo</b><span>Pick and read colors</span></div></div>
  <div class="daily" onclick="go('#/color/${d.h.slice(1)}')"><i style="background:${d.h}"></i><div><div class="small mut">COLOR OF THE DAY</div><div class="serif" style="font-size:22px">${d.n}</div><div class="small mut">${d.h.toUpperCase()}</div></div></div>
  ${COLS.map(c=>{const n=Math.min(14,c.items.length),cs=range(0,n-1,1).map(i=>c.items[Math.round(i*(c.items.length-1)/(n-1))].h);
@@ -473,7 +479,7 @@ function saved(){
  (s.length?grid(s.map(h=>({h,n:h})))+`<button class="btn" onclick="cp('${s.join(' ')}')">Copy all as list</button>`:'<p class="mut">Tap ♥ on any color to keep it here.</p>')}
 function detail(hex){
  last=hex;const [h,s,l]=rgb2hsl(rgb(hex));
- app.innerHTML=`${back()}<div class="big" id="big"><div class="n" id="nm"></div><div id="hxl"></div></div><button class="btn" style="margin-top:12px" onclick="go('#/world/'+last.slice(1))">✦ Enter this color</button>
+ app.innerHTML=`${back()}<div class="big" id="big"><div class="n" id="nm"></div><div id="hxl"></div></div><button class="btn" style="margin-top:12px" onclick="go('#/world/'+last.slice(1))">✦ Enter this color</button><button class="btn" style="margin-top:10px" onclick="go('#/tryon/'+last.slice(1))">Try on a real object</button>
  <div class="sl"><label>Hue</label><input type="range" id="H" min="0" max="360" value="${Math.round(h)}" oninput="slide()">
  <label>Saturation</label><input type="range" id="S" min="0" max="100" value="${Math.round(s)}" oninput="slide()">
  <label>Lightness</label><input type="range" id="L" min="0" max="100" value="${Math.round(l)}" oninput="slide()"></div>
@@ -709,10 +715,165 @@ function world(hex,title){
  }
  W.raf=requestAnimationFrame(frame)}
 
+// Try on: recolor a real object from a camera frame or a photo
+const TOLUT=(()=>{const a=new Uint8ClampedArray(4096);for(let i=0;i<4096;i++){const v=i/4095;a[i]=Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055))}return a})();
+const S2L=(()=>{const a=new Float32Array(256);for(let i=0;i<256;i++)a[i]=lin(i);return a})();
+function toLab(d,n){
+ const L=new Float32Array(n),A=new Float32Array(n),B=new Float32Array(n);
+ for(let i=0,j=0;i<n;i++,j+=4){const r=S2L[d[j]],g=S2L[d[j+1]],b=S2L[d[j+2]];
+  const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),q=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+  L[i]=.2104542553*l+.793617785*m-.0040720468*q;A[i]=1.9779984951*l-2.428592205*m+.4505937099*q;B[i]=.0259040371*l+.7827717662*m-.808675766*q}
+ return {L,A,B}}
+function blur3(src,w,h){
+ const t=new Float32Array(src.length),o=new Float32Array(src.length);
+ for(let y=0;y<h;y++){const r=y*w;for(let x=0;x<w;x++){t[r+x]=(src[r+(x>0?x-1:x)]+src[r+x]+src[r+(x<w-1?x+1:x)])/3}}
+ for(let y=0;y<h;y++){const y0=(y>0?y-1:y)*w,y1=y*w,y2=(y<h-1?y+1:y)*w;for(let x=0;x<w;x++)o[y1+x]=(t[y0+x]+t[y1+x]+t[y2+x])/3}
+ return o}
+// Region growing from a tap: follows smooth shading, stops at real edges
+function segment(lab,w,h,sx,sy,spread){
+ const n=w*h,L=lab.L,A=lab.A,B=lab.B;
+ let sl=0,sa=0,sb=0,c=0;
+ for(let y=Math.max(0,sy-2);y<=Math.min(h-1,sy+2);y++)for(let x=Math.max(0,sx-2);x<=Math.min(w-1,sx+2);x++){const i=y*w+x;sl+=L[i];sa+=A[i];sb+=B[i];c++}
+ sl/=c;sa/=c;sb/=c;
+ const Ts=.02+spread*.0022,Tp=.01+spread*.0006,Ts2=Ts*Ts,Tp2=Tp*Tp,WL=.5;
+ const mask=new Uint8Array(n),stack=new Int32Array(n);let sp=0;
+ const si=sy*w+sx;mask[si]=1;stack[sp++]=si;
+ const tryN=(j,i)=>{if(mask[j])return;
+  let dl=(L[j]-sl)*.3,da=(A[j]-sa)*1.4,db=(B[j]-sb)*1.4;if(dl*dl+da*da+db*db>Ts2)return;
+  dl=(L[j]-L[i])*WL;da=A[j]-A[i];db=B[j]-B[i];if(dl*dl+da*da+db*db>Tp2)return;
+  mask[j]=1;stack[sp++]=j};
+ while(sp){const i=stack[--sp],x=i%w,y=(i-x)/w;
+  if(x>0)tryN(i-1,i);if(x<w-1)tryN(i+1,i);if(y>0)tryN(i-w,i);if(y<h-1)tryN(i+w,i)}
+ return mask}
+// Fill small enclosed holes (labels, highlights) but not big ones (windows)
+function cleanMask(mask,w,h){
+ const n=w*h,lab=new Uint8Array(n),mem=new Int32Array(n),maxArea=Math.max(60,Math.round(n*.012));
+ for(let s0=0;s0<n;s0++){if(mask[s0]||lab[s0])continue;
+  let head=0,tail=0,border=false;mem[tail++]=s0;lab[s0]=1;
+  while(head<tail){const i=mem[head++],x=i%w,y=(i-x)/w;
+   if(x==0||y==0||x==w-1||y==h-1)border=true;
+   if(x>0&&!mask[i-1]&&!lab[i-1]){lab[i-1]=1;mem[tail++]=i-1}
+   if(x<w-1&&!mask[i+1]&&!lab[i+1]){lab[i+1]=1;mem[tail++]=i+1}
+   if(y>0&&!mask[i-w]&&!lab[i-w]){lab[i-w]=1;mem[tail++]=i-w}
+   if(y<h-1&&!mask[i+w]&&!lab[i+w]){lab[i+w]=1;mem[tail++]=i+w}}
+  if(!border&&tail<maxArea)for(let k=0;k<tail;k++)mask[mem[k]]=1}
+ return mask}
+let TO=null;
+function stopTry(){if(!TO)return;if(TO.stream)TO.stream.getTracks().forEach(t=>t.stop());TO=null}
+function toPalette(){
+ const b=bstore.get(),o=[TO.base];
+ friends(TO.base).forEach(x=>o.push(x[2]));
+ ['p','s','a'].forEach(k=>{if(b[k])o.push(b[k])});
+ store.get().forEach(x=>o.push(x));
+ return [...new Set(o)].slice(0,24)}
+function tryon(hex){
+ stopTry();
+ const base=hex||bstore.get().p||last||'#e8c37a';
+ TO={base,hex:base,layers:[],sel:-1,strength:1,spread:35,w:0,h:0,stream:null,busy:0};
+ app.innerHTML=`${back()}<h2 class="serif">Try on</h2><div class="mut">Show a color on a real object. Take a photo, tap the object, then pick a color.</div>
+ <div id="tosrc" style="margin-top:14px"><button class="btn" onclick="toCam()">Open camera</button><button class="btn" onclick="document.getElementById('tofile').click()">Choose a photo</button><input id="tofile" type="file" accept="image/*" style="display:none" onchange="toFile(this)"></div><div id="tostage"></div>`}
+async function toCam(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Camera is not available here. Choose a photo instead.');return}
+ try{
+  const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:960}},audio:false});
+  if(!TO){st.getTracks().forEach(t=>t.stop());return}
+  TO.stream=st;
+  document.getElementById('tosrc').style.display='none';
+  document.getElementById('tostage').innerHTML=`<video id="tovid" playsinline muted autoplay style="width:100%;border-radius:18px;background:#000;margin-top:14px"></video><div class="hrow" style="margin-top:12px"><button class="btn" style="margin:0" onclick="toShot()">Capture</button><button class="btn" style="margin:0" onclick="toStopCam()">Cancel</button></div>`;
+  const v=document.getElementById('tovid');v.srcObject=st;v.play().catch(()=>{})
+ }catch(e){toast('Camera blocked. Choose a photo instead.')}}
+function toStopCam(){if(TO&&TO.stream){TO.stream.getTracks().forEach(t=>t.stop());TO.stream=null}
+ document.getElementById('tostage').innerHTML='';document.getElementById('tosrc').style.display=''}
+function toShot(){
+ const v=document.getElementById('tovid');if(!v||!v.videoWidth){toast('Camera is still starting');return}
+ const sc=Math.min(1,720/Math.max(v.videoWidth,v.videoHeight)),c=document.createElement('canvas');
+ c.width=Math.round(v.videoWidth*sc);c.height=Math.round(v.videoHeight*sc);c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+ if(TO.stream){TO.stream.getTracks().forEach(t=>t.stop());TO.stream=null}
+ toLoad(c)}
+function toFile(inp){
+ const f=inp.files&&inp.files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{const img=new Image();
+  img.onload=()=>{const sc=Math.min(1,720/Math.max(img.width,img.height)),c=document.createElement('canvas');
+   c.width=Math.max(2,Math.round(img.width*sc));c.height=Math.max(2,Math.round(img.height*sc));
+   c.getContext('2d').drawImage(img,0,0,c.width,c.height);toLoad(c)};
+  img.src=rd.result};
+ rd.readAsDataURL(f)}
+function toLoad(c){
+ if(!TO)return;
+ const w=c.width,h=c.height,cx=c.getContext('2d'),src=cx.getImageData(0,0,w,h),lab=toLab(src.data,w*h);
+ TO.w=w;TO.h=h;TO.src=src;TO.out=new ImageData(new Uint8ClampedArray(src.data),w,h);TO.lab=lab;
+ TO.labB={L:blur3(lab.L,w,h),A:blur3(lab.A,w,h),B:blur3(lab.B,w,h)};
+ TO.layers=[];TO.sel=-1;
+ document.getElementById('tosrc').style.display='none';
+ document.getElementById('tostage').innerHTML=`<div style="margin-top:14px"><canvas id="tocv" style="width:100%;border-radius:18px;touch-action:manipulation;display:block"></canvas></div>
+ <div class="small mut" id="tohint" style="margin:8px 0">Tap the object you want to recolor.</div>
+ <div class="chips2" id="topal"></div>
+ <div class="sl"><label>Spread · how far the color reaches</label><input type="range" id="tosp" min="0" max="100" value="${TO.spread}" oninput="toSpread(this.value)"><label>Strength</label><input type="range" id="tost" min="0" max="100" value="100" oninput="toStrength(this.value)"></div>
+ <div class="hrow" style="margin-top:12px"><button class="btn" style="margin:0" id="toorig">Hold to see original</button><button class="btn" style="margin:0" onclick="toRemove()">Remove object</button></div>
+ <button class="btn" onclick="toReset()">New photo</button>`;
+ const cv=document.getElementById('tocv');cv.width=w;cv.height=h;TO.cx=cv.getContext('2d');
+ cv.addEventListener('click',toTap);
+ const og=document.getElementById('toorig');
+ og.addEventListener('pointerdown',()=>{if(TO)TO.cx.putImageData(TO.src,0,0)});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>og.addEventListener(ev,()=>{if(TO)toRender()}));
+ toChips();toRender()}
+function toChips(){
+ const el=document.getElementById('topal');if(!el)return;
+ el.innerHTML=toPalette().map(c=>`<i class="${c==TO.hex?'on':''}" style="background:${c}" onclick="toColor('${c}')"></i>`).join('')}
+function toBuild(x,y,spread,hex){
+ const w=TO.w,h=TO.h,n=w*h;
+ const mask=cleanMask(segment(TO.labB,w,h,x,y,spread),w,h);
+ let cnt=0,sl=0;for(let i=0;i<n;i++)if(mask[i]){cnt++;sl+=TO.lab.L[i]}
+ if(cnt<25)return null;
+ const m=new Float32Array(n);for(let i=0;i<n;i++)m[i]=mask[i];
+ return {seed:[x,y],spread,hex,mask,alpha:blur3(blur3(m,w,h),w,h),lref:sl/cnt,area:cnt}}
+function toTap(e){
+ if(!TO||!TO.src)return;
+ const cv=e.currentTarget,r=cv.getBoundingClientRect();
+ const x=clampN(Math.round((e.clientX-r.left)*TO.w/r.width),0,TO.w-1),y=clampN(Math.round((e.clientY-r.top)*TO.h/r.height),0,TO.h-1),i=y*TO.w+x;
+ for(let k=TO.layers.length-1;k>=0;k--)if(TO.layers[k].alpha[i]>.5){TO.sel=k;TO.hex=TO.layers[k].hex;document.getElementById('tosp').value=TO.layers[k].spread;TO.spread=TO.layers[k].spread;toChips();toRender();return}
+ if(TO.layers.length>=4){toast('Up to 4 objects');return}
+ const ly=toBuild(x,y,TO.spread,TO.hex);
+ if(!ly){toast('Try tapping the middle of the object');return}
+ TO.layers.push(ly);TO.sel=TO.layers.length-1;
+ document.getElementById('tohint').textContent='Pick a color below. Tap elsewhere to add another object, or tap an object to change it.';
+ toRender()}
+function toColor(hex){if(!TO)return;TO.hex=hex;if(TO.sel>=0)TO.layers[TO.sel].hex=hex;toChips();toRender()}
+function toSpread(v){
+ if(!TO)return;TO.spread=+v;if(TO.sel<0||TO.busy)return;TO.busy=1;
+ requestAnimationFrame(()=>{if(!TO)return;TO.busy=0;const ly=TO.layers[TO.sel];if(!ly)return;
+  const nl=toBuild(ly.seed[0],ly.seed[1],TO.spread,ly.hex);if(nl){TO.layers[TO.sel]=nl;toRender()}})}
+function toStrength(v){if(!TO)return;TO.strength=v/100;if(TO.busy2)return;TO.busy2=1;requestAnimationFrame(()=>{if(TO){TO.busy2=0;toRender()}})}
+function toRemove(){if(!TO||TO.sel<0)return;TO.layers.splice(TO.sel,1);TO.sel=TO.layers.length-1;toRender()}
+function toReset(){if(!TO)return;document.getElementById('tostage').innerHTML='';document.getElementById('tosrc').style.display='';TO.layers=[];TO.sel=-1;TO.src=null}
+function toRecolor(ly){
+ const n=TO.w*TO.h,L=TO.lab.L,out=TO.out.data,al=ly.alpha,k=TO.strength,Lr=ly.lref;
+ const t=hex2ok(ly.hex),Lt=t[0],Ct=t[1],hr=t[2]*Math.PI/180,ca=Math.cos(hr),sa=Math.sin(hr);
+ for(let i=0;i<n;i++){const a0=al[i];if(a0<.01)continue;
+  const Li=L[i];let Ln=Lt+(Li-Lr);Ln=Ln<.02?.02:Ln>.99?.99:Ln;
+  let Cn=Ct*Math.max(.35,Math.min(1.15,Ln/Math.max(Lt,.08)));
+  let r=0,g=0,b=0;
+  for(let it=0;it<4;it++){
+   const aa=Cn*ca,bb=Cn*sa,l_=Ln+.3963377774*aa+.2158037573*bb,m_=Ln-.1055613458*aa-.0638541728*bb,s_=Ln-.0894841775*aa-1.291485548*bb;
+   const l3=l_*l_*l_,m3=m_*m_*m_,s3=s_*s_*s_;
+   r=4.0767416621*l3-3.3077115913*m3+.2309699292*s3;g=-1.2684380046*l3+2.6097574011*m3-.3413193965*s3;b=-.0041960863*l3-.7034186147*m3+1.707614701*s3;
+   if(r>=-.001&&r<=1.001&&g>=-.001&&g<=1.001&&b>=-.001&&b<=1.001)break;Cn*=.8}
+  r=r<0?0:r>1?1:r;g=g<0?0:g>1?1:g;b=b<0?0:b>1?1:b;
+  const sp=Li>.88?Math.min(1,(Li-.88)/.1)*.8:0,w=a0*k*(1-sp),j=i*4;
+  out[j]+=(TOLUT[(r*4095+.5)|0]-out[j])*w;out[j+1]+=(TOLUT[(g*4095+.5)|0]-out[j+1])*w;out[j+2]+=(TOLUT[(b*4095+.5)|0]-out[j+2])*w}}
+function toRender(){
+ if(!TO||!TO.src)return;
+ TO.out.data.set(TO.src.data);
+ TO.layers.forEach(toRecolor);
+ const cx=TO.cx;cx.putImageData(TO.out,0,0);
+ const ly=TO.layers[TO.sel];
+ if(ly){const rr=Math.max(7,TO.w/70);cx.lineWidth=Math.max(2,TO.w/260);cx.strokeStyle='#000';cx.beginPath();cx.arc(ly.seed[0],ly.seed[1],rr+cx.lineWidth,0,7);cx.stroke();cx.strokeStyle='#fff';cx.beginPath();cx.arc(ly.seed[0],ly.seed[1],rr,0,7);cx.stroke()}}
+
 // Router
 function route(){
- stopWorld();const [a,b,c]=location.hash.slice(2).split('/');window.scrollTo(0,0);
- if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else if(a=='brand')brand();else if(a=='feel')feel();else if(a=='photo')photo();else if(a=='world')world(parse(b)||'#808080',c?decodeURIComponent(c):null);else home();
+ stopWorld();stopTry();const [a,b,c]=location.hash.slice(2).split('/');window.scrollTo(0,0);
+ if(a=='c')collection(b);else if(a=='color')detail(parse(b)||'#808080');else if(a=='saved')saved();else if(a=='brand')brand();else if(a=='feel')feel();else if(a=='photo')photo();else if(a=='tryon')tryon(b?parse(b):null);else if(a=='world')world(parse(b)||'#808080',c?decodeURIComponent(c):null);else home();
  const t=a=='color'?'mix':a=='saved'?'saved':a=='brand'?'brand':'explore';
  document.querySelectorAll('#tabs a').forEach(x=>x.classList.toggle('on',x.dataset.t==t))}
 window.addEventListener('hashchange',route);route();
