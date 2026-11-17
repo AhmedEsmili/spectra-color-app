@@ -210,15 +210,30 @@ const LINES={
  light:['{b}, the light {a} longs for.','Morning on {a}’s shoulders: {b}.','{a} lifted into {b}, like mist at dawn.'],
  ground:['{b}, a quiet page for {a} to speak on.','Linen and silence: {b} lets {a} breathe.','The still room around {a}: {b}.'],
  gold:['A single thread of {b} through {a}, like a hidden jewel.','{b}: the secret {a} keeps for royalty.','Add {b}, and {a} becomes a crown.']};
+// OKLCH: a color space built to match how eyes see lightness, chroma and hue
+function hex2ok(hex){
+ const [r,g,b]=rgb(hex).map(lin);
+ const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b),m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b),q=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+ const L=.2104542553*l+.793617785*m-.0040720468*q,A=1.9779984951*l-2.428592205*m+.4505937099*q,B=.0259040371*l+.7827717662*m-.808675766*q;
+ return [L,Math.hypot(A,B),(Math.atan2(B,A)*180/Math.PI+360)%360]}
+function ok2hex(L,C,h){
+ const hr=h*Math.PI/180;
+ const f=cc=>{const A=cc*Math.cos(hr),B=cc*Math.sin(hr);
+  const l=Math.pow(L+.3963377774*A+.2158037573*B,3),m=Math.pow(L-.1055613458*A-.0638541728*B,3),q=Math.pow(L-.0894841775*A-1.291485548*B,3);
+  return [4.0767416621*l-3.3077115913*m+.2309699292*q,-1.2684380046*l+2.6097574011*m-.3413193965*q,-.0041960863*l-.7034186147*m+1.707614701*q]};
+ const inG=v=>v.every(x=>x>=-.0005&&x<=1.0005);
+ let c=C;
+ if(!inG(f(C))){let lo=0,hi=C;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(inG(f(mid)))lo=mid;else hi=mid}c=lo}
+ return toHex(f(c).map(x=>gam(clamp01(x))))}
 function friends(hex){
- const [h,s,l]=rgb2hsl(rgb(hex)),harsh=s>78&&l>22&&l<78,tm=harsh?.5:.78,out=[];
- if(harsh)out.push(['gentle','Its gentler self',hsl(h,clampN(s*.55,30,62),clampN(l,34,66))]);
- out.push(['muse','The Muse',hsl(h+180,clampN(s*tm,28,66),l<50?clampN(l+34,60,88):clampN(l-34,16,40))]);
- out.push(['whisper','The Whisper',hsl(h-28,clampN(s*.45,18,45),clampN(l+(l<60?20:-22),22,88))]);
- out.push(['shadow','The Shadow',hsl(h+14,clampN(s*.5,25,55),clampN(l*.35,10,24))]);
- out.push(['light','The Light',hsl(h-8,clampN(s*.7,30,75),91)]);
- out.push(['ground','The Quiet Ground',hsl(h,14,94)]);
- out.push(['gold','The Golden Thread',h>=200&&h<=300?hsl(42,70,58):hsl(190,45,32)]);
+ const [L,C,h]=hex2ok(hex),harsh=C>.17&&L>.35&&L<.92,tm=harsh?.5:.8,out=[];
+ if(harsh)out.push(['gentle','Its gentler self',ok2hex(clampN(L,.45,.78),clampN(C*.55,.06,.13),h)]);
+ out.push(['muse','The Muse',ok2hex(L<.6?clampN(L+.35,.75,.93):clampN(L-.38,.22,.42),clampN(C*tm,.04,.13),h+180)]);
+ out.push(['whisper','The Whisper',ok2hex(clampN(L+(L<.65?.18:-.2),.3,.9),clampN(C*.45,.03,.07),h-30)]);
+ out.push(['shadow','The Shadow',ok2hex(clampN(L*.35,.17,.3),clampN(C*.4,.03,.08),h+14)]);
+ out.push(['light','The Light',ok2hex(.95,clampN(C*.35,.02,.06),h-8)]);
+ out.push(['ground','The Quiet Ground',ok2hex(.965,.012,h)]);
+ out.push(['gold','The Golden Thread',h>=190&&h<=330?ok2hex(.8,.13,85):ok2hex(.42,.08,205)]);
  return out}
 function friendsSec(hex){
  const base=strip(nameOf(hex)),hs=hashOf(hex),f=friends(hex),harsh=f[0][0]=='gentle';
